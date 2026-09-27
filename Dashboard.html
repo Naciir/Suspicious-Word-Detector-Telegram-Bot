@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SECURITY MONITOR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+    --bg-color: #050505;
+    --card-bg: rgba(16, 20, 24, 0.85);
+    --border-color: rgba(0, 243, 255, 0.15);
+    --text-primary: #e0f7fa;
+    --text-dim: #455a64;
+    --neon-cyan: #00f3ff;
+    --neon-magenta: #ff00ff; /* New neon color */
+    --neon-green: #00ff80; /* New neon color */
+    --neon-yellow: #f8ff00; /* New neon color */
+    --neon-red: #ff003c;
+    --neon-amber: #ffb300;
+    --font-header: 'Share Tech Mono', monospace;
+    --font-code: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-code);
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 0, 60, 0.05) 0%, transparent 50%),
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    position: relative;
+    overflow-x: hidden;
+}
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(0, 243, 255, 0.02) 50%,
+        transparent 100%
+    );
+    animation: scanline-vertical 8s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+@keyframes scanline-vertical {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
+.container { 
+    max-width: 1400px; 
+    margin: 0 auto; 
+    position: relative;
+    z-index: 1;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+    padding-bottom: 15px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 243, 255, 0.1);
+}
+header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+h1 {
+    font-family: var(--font-header);
+    font-size: 36px;
+    margin: 0;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    text-shadow: 
+        0 0 10px rgba(0, 243, 255, 0.8),
+        0 0 20px rgba(0, 243, 255, 0.6),
+        0 0 30px rgba(0, 243, 255, 0.4),
+        0 0 40px rgba(0, 243, 255, 0.2);
+    animation: text-flicker 3s infinite;
+    position: relative;
+}
+@keyframes text-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.95; }
+}
+.status-indicator {
+    font-family: var(--font-header);
+    color: var(--neon-red);
+    font-size: 14px;
+    border: 2px solid rgba(255, 0, 60, 0.5);
+    padding: 6px 14px;
+    background: rgba(255, 0, 60, 0.1);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 
+        0 0 10px rgba(255, 0, 60, 0.5),
+        inset 0 0 10px rgba(255, 0, 60, 0.1);
+    text-shadow: 0 0 10px rgba(255, 0, 60, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+.status-indicator::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 0, 60, 0.3), transparent);
+    animation: scanline-horizontal 2s linear infinite;
+}
+@keyframes scanline-horizontal {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+.blink-wrapper { display: flex; align-items: center; gap: 4px; }
+.blink-char {
+    width: 6px; height: 6px;
+    background: var(--neon-red);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px var(--neon-red),
+        0 0 16px var(--neon-red),
+        0 0 24px var(--neon-red);
+    animation: blinker 0.8s steps(1, start) infinite;
+    position: relative;
+    z-index: 1;
+}
+.terminal-window {
+    background: var(--card-bg);
+    border: 2px solid rgba(0, 243, 255, 0.3);
+    box-shadow: 
+        0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 60px rgba(0, 243, 255, 0.2),
+        inset 0 0 30px rgba(0, 243, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+.terminal-window::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0.8;
+    animation: pulse-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 10px var(--neon-cyan);
+}
+.terminal-window::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.1), transparent);
+    animation: scanline-terminal 4s linear infinite;
+    pointer-events: none;
+}
+@keyframes scanline-terminal {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+table { 
+    width: 100%; 
+    border-collapse: separate; 
+    border-spacing: 0;
+    text-align: left; 
+}
+thead { 
+    background: linear-gradient(180deg, rgba(0, 243, 255, 0.1) 0%, rgba(0, 243, 255, 0.05) 100%); 
+    border-bottom: 3px solid rgba(0, 243, 255, 0.4);
+    box-shadow: 
+        0 4px 15px rgba(0, 243, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 243, 255, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+th { 
+    padding: 20px 18px; 
+    font-family: var(--font-header); 
+    color: var(--neon-cyan); 
+    font-weight: 600; 
+    letter-spacing: 2px; 
+    font-size: 13px; 
+    text-transform: uppercase;
+    text-shadow: 
+        0 0 10px rgba(0, 243, 255, 0.8),
+        0 0 20px rgba(0, 243, 255, 0.4);
+    position: relative;
+    border-right: 1px solid rgba(0, 243, 255, 0.15);
+}
+th:last-child {
+    border-right: none;
+}
+th::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0.6;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+tbody tr {
+    transition: all 0.3s ease;
+    border-left: 2px solid transparent;
+}
+tbody tr:nth-child(even) {
+    background-color: rgba(0, 243, 255, 0.02);
+}
+tbody tr:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+td { 
+    padding: 18px 18px; 
+    border-bottom: 1px solid rgba(0, 243, 255, 0.08); 
+    border-right: 1px solid rgba(0, 243, 255, 0.05);
+    font-size: 13px; 
+    vertical-align: middle; 
+    transition: all 0.3s ease;
+    position: relative;
+}
+td:last-child {
+    border-right: none;
+}
+tbody tr:hover {
+    background-color: rgba(0, 243, 255, 0.08) !important;
+    border-left-color: rgba(0, 243, 255, 0.5);
+    box-shadow: 
+        inset 3px 0 0 rgba(0, 243, 255, 0.5),
+        0 0 20px rgba(0, 243, 255, 0.1);
+    transform: translateX(2px);
+}
+tbody tr:hover td {
+    border-bottom-color: rgba(0, 243, 255, 0.2);
+}
+tbody tr:last-child td {
+    border-bottom: none;
+}
+.col-user { 
+    color: #fff; 
+    font-weight: 700; 
+    letter-spacing: 1px;
+    text-shadow: 
+        0 0 8px rgba(255, 255, 255, 0.5),
+        0 0 15px rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+}
+.user-prefix { 
+    color: rgba(0, 243, 255, 0.6); 
+    font-size: 11px; 
+    margin-right: 8px;
+    font-weight: 600;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
+    letter-spacing: 1px;
+}
+.col-msg { 
+    color: #b0bec5; 
+    font-family: var(--font-code); 
+    max-width: 400px; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap;
+    line-height: 1.6;
+    padding-left: 8px;
+}
+.msg-arrow { 
+    color: var(--neon-cyan); 
+    margin-right: 10px; 
+    text-shadow: 
+        0 0 8px rgba(0, 243, 255, 0.9),
+        0 0 15px rgba(0, 243, 255, 0.4);
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+.threat-badge { 
+    display: inline-flex; 
+    align-items: center; 
+    padding: 6px 12px; 
+    border: 2px solid; 
+    font-size: 11px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 1.5px;
+    box-shadow: 
+        0 0 10px currentColor,
+        inset 0 0 10px rgba(255, 255, 255, 0.05);
+    text-shadow: 
+        0 0 8px currentColor,
+        0 0 15px currentColor;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+.threat-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 15px currentColor,
+        0 0 25px currentColor,
+        inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+.severity-critical { color: #ff0000; background: rgba(255, 0, 0, 0.1); border-color: rgba(255, 0, 0, 0.3); }
+.severity-high { color: #ff6b00; background: rgba(255, 107, 0, 0.1); border-color: rgba(255, 107, 0, 0.3); }
+.severity-medium { color: var(--neon-amber); background: rgba(255, 179, 0, 0.1); border-color: rgba(255, 179, 0, 0.3); }
+.severity-low { color: #ffeb3b; background: rgba(255, 235, 59, 0.1); border-color: rgba(255, 235, 59, 0.3); }
+.severity-safe { color: var(--neon-green); background: rgba(0, 255, 128, 0.1); border-color: rgba(0, 255, 128, 0.3); } /* Updated safe color */
+.threat-icon { margin-right: 6px; font-size: 10px; }
+.col-time { text-align: right; min-width: 120px; }
+.time-clock { 
+    display: block; 
+    color: var(--neon-cyan); 
+    font-family: var(--font-header); 
+    font-size: 16px; 
+    letter-spacing: 2px; 
+    font-weight: 600;
+    text-shadow: 
+        0 0 8px rgba(0, 243, 255, 0.9),
+        0 0 15px rgba(0, 243, 255, 0.5),
+        0 0 25px rgba(0, 243, 255, 0.2);
+    margin-bottom: 4px;
+}
+.time-date { 
+    display: block; 
+    color: rgba(0, 243, 255, 0.6); 
+    font-size: 10px; 
+    margin-top: 4px; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+}
+@keyframes blinker { 50% { opacity: 0; } }
+@keyframes scanline { 0% { transform: translateX(-10px); opacity: 0; border-left: 2px solid var(--neon-cyan); } 100% { transform: translateX(0); opacity: 1; border-left: 2px solid transparent; } }
+
+/* Modified/New CSS */
+.new-row {
+    animation: scanline 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    background: linear-gradient(90deg, rgba(0, 243, 255, 0.05), transparent);
+}
+.new-row:not(:first-child) {
+    background: transparent;
+    animation: none;
+}
+/* Adjusted chart container to fit three charts */
+.chart-container {
+    display:flex; 
+    gap:20px; /* Reduced gap to fit three charts */
+    margin-bottom:30px; 
+    height:250px;
+}
+.chart-wrapper {
+    flex: 1; /* Each wrapper takes equal space */
+    background: var(--card-bg);
+    border: 2px solid rgba(0, 243, 255, 0.2);
+    padding: 10px;
+    box-shadow: 
+        0 0 20px rgba(0, 243, 255, 0.15),
+        inset 0 0 20px rgba(0, 243, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.chart-wrapper:hover {
+    border-color: rgba(0, 243, 255, 0.25);
+    box-shadow: 
+        0 0 20px rgba(0, 243, 255, 0.15),
+        inset 0 0 20px rgba(0, 243, 255, 0.05);
+}
+.chart-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.1), transparent);
+    animation: scanline-chart 5s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+@keyframes scanline-chart {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+.chart-container canvas { width: 100% !important; height: 100% !important; }
+
+/* Filter Styles - Segmented Control Aesthetic */
+.filter-control {
+    display: flex;
+    border: 2px solid rgba(0, 243, 255, 0.3);
+    background: rgba(0, 243, 255, 0.08);
+    width: fit-content;
+    box-shadow: 
+        0 0 15px rgba(0, 243, 255, 0.2),
+        inset 0 0 10px rgba(0, 243, 255, 0.05);
+}
+.filter-control label {
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 13px;
+    border-right: 1px solid rgba(0, 243, 255, 0.2);
+    transition: all 0.3s;
+    color: var(--text-dim);
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+}
+.filter-control label:hover {
+    background-color: rgba(0, 243, 255, 0.05);
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
+}
+.filter-control label:last-child { border-right: none; }
+.filter-control input[type="radio"] { display: none; }
+
+/* ALL - Cyan */
+#filter-all:checked + label {
+    background: #00f3ff;
+    color: var(--bg-color);
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #00f3ff,
+        0 0 30px rgba(0, 243, 255, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-all + label:hover {
+    background-color: rgba(0, 243, 255, 0.1);
+    color: #00f3ff;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+}
+
+/* CRITICAL - Red */
+#filter-critical:checked + label {
+    background: #ff003c;
+    color: #fff;
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #ff003c,
+        0 0 30px rgba(255, 0, 60, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-critical + label:hover {
+    background-color: rgba(255, 0, 60, 0.1);
+    color: #ff003c;
+    text-shadow: 0 0 8px rgba(255, 0, 60, 0.6);
+}
+
+/* HIGH - Red-Orange (between red and orange) */
+#filter-high:checked + label {
+    background: #ff5500;
+    color: #fff;
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #ff5500,
+        0 0 30px rgba(255, 85, 0, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-high + label:hover {
+    background-color: rgba(255, 85, 0, 0.1);
+    color: #ff5500;
+    text-shadow: 0 0 8px rgba(255, 85, 0, 0.6);
+}
+
+/* MEDIUM - Orange */
+#filter-medium:checked + label {
+    background: #ff8800;
+    color: var(--bg-color);
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #ff8800,
+        0 0 30px rgba(255, 136, 0, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-medium + label:hover {
+    background-color: rgba(255, 136, 0, 0.1);
+    color: #ff8800;
+    text-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
+}
+
+/* LOW - Yellow */
+#filter-low:checked + label {
+    background: #f8ff00;
+    color: var(--bg-color);
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #f8ff00,
+        0 0 30px rgba(248, 255, 0, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-low + label:hover {
+    background-color: rgba(248, 255, 0, 0.1);
+    color: #f8ff00;
+    text-shadow: 0 0 8px rgba(248, 255, 0, 0.6);
+}
+
+/* SAFE - Green */
+#filter-safe:checked + label {
+    background: #00ff80;
+    color: var(--bg-color);
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: 
+        0 0 15px #00ff80,
+        0 0 30px rgba(0, 255, 128, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.2);
+    animation: pulse-selected 2s ease-in-out infinite;
+}
+#filter-safe + label:hover {
+    background-color: rgba(0, 255, 128, 0.1);
+    color: #00ff80;
+    text-shadow: 0 0 8px rgba(0, 255, 128, 0.6);
+}
+@keyframes pulse-selected {
+    0%, 100% { box-shadow: 0 0 15px var(--neon-cyan), 0 0 30px rgba(0, 243, 255, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.2); }
+    50% { box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px rgba(0, 243, 255, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.2); }
+}
+.filter-label { 
+    margin-right: 10px; 
+    font-size: 14px; 
+    font-weight: 700; 
+    color: var(--neon-cyan);
+    text-shadow: 
+        0 0 10px rgba(0, 243, 255, 0.8),
+        0 0 20px rgba(0, 243, 255, 0.4);
+    letter-spacing: 1px;
+}
+
+/* Chart Styling for better neon look */
+.chart-title {
+    color: var(--neon-cyan);
+    font-family: var(--font-header);
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 10px;
+    text-shadow: 
+        0 0 10px rgba(0, 243, 255, 0.8),
+        0 0 20px rgba(0, 243, 255, 0.4);
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>SECURITY MONITOR</h1>
+        </div>
+        <div class="status-indicator">
+            <div class="blink-wrapper">
+                <span style="color:var(--neon-red); font-size:12px;">&lt;</span>
+                <span class="blink-char"></span>
+                <span style="color:var(--neon-red); font-size:12px;">&gt;</span>
+            </div>
+            LIVE FEED
+        </div>
+    </header>
+
+    <div style="margin-bottom:20px; display:flex; align-items:center;">
+        <span class="filter-label">SEVERITY FILTER::</span>
+        <div class="filter-control" id="severity-filter-control">
+            <input type="radio" id="filter-all" name="severity-filter" value="all" checked>
+            <label for="filter-all">ALL</label>
+            <input type="radio" id="filter-critical" name="severity-filter" value="critical">
+            <label for="filter-critical">CRITICAL</label>
+            <input type="radio" id="filter-high" name="severity-filter" value="high">
+            <label for="filter-high">HIGH</label>
+            <input type="radio" id="filter-medium" name="severity-filter" value="medium">
+            <label for="filter-medium">MEDIUM</label>
+            <input type="radio" id="filter-low" name="severity-filter" value="low">
+            <label for="filter-low">LOW</label>
+            <input type="radio" id="filter-safe" name="severity-filter" value="safe">
+            <label for="filter-safe">SAFE</label>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <div class="chart-title">Top 7 Server Match Keywords</div>
+            <canvas id="keywordChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <div class="chart-title">Severity Distribution</div>
+            <canvas id="severityChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <div class="chart-title">THREAT PROFILES</div>
+            <canvas id="hostileUserChart"></canvas>
+        </div>
+    </div>
+
+    <div class="terminal-window">
+        <table>
+            <thead>
+                <tr>
+                    <th width="20%">Subject_ID</th>
+                    <th width="40%">Intercepted_Messages</th>
+                    <th width="20%">Threat_Level</th>
+                    <th width="20%" style="text-align:right">Event_Time</th>
+                </tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const filterControl = document.getElementById("severity-filter-control");
+let severityChartInstance = null;
+let keywordChartInstance = null;
+let hostileUserChartInstance = null; // New chart instance
+let logData = []; 
+
+// Neon Color Palettes
+const DOUGHNUT_COLORS = [
+    '#ff003c', // Neon Red (Critical)
+    '#ffb300', // Neon Amber (High)
+    '#f8ff00', // Neon Yellow (Medium)
+    '#00ff80', // Neon Green (Low)
+    '#00f3ff'  // Neon Cyan (Safe)
+];
+
+const BAR_COLOR = '#00f3ff'; // Neon Cyan for bar charts (same as h1)
+
+function formatLogTime(isoString) {
+    const date = new Date(isoString);
+    if(isNaN(date)) return { time: "UNKNOWN", date: "ERR" };
+    const timeStr = new Intl.DateTimeFormat('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).format(date);
+    const dateStr = new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'short', year:'numeric' }).format(date).toUpperCase();
+    return { time: timeStr, date: dateStr };
+}
+
+function getUserDisplay(event) {
+    if(event.user && event.user.id) return event.user.username || event.user.first_name || 'Unknown';
+    if(event.chat && event.chat.type==='channel') return event.chat.title || 'Unknown Channel';
+    return 'Unknown';
+}
+
+function getMatchesDisplay(event) {
+    if(event.matches && event.matches.length>0) return event.matches.join(', ');
+    return 'Pattern Match';
+}
+
+function getSelectedSeverity() {
+    return document.querySelector('input[name="severity-filter"]:checked').value.toLowerCase();
+}
+
+async function fetchLogs() {
+    try {
+        const res = await fetch("/logs");
+        logData = await res.json();
+        updateDashboard(logData);
+    } catch(err){ 
+        console.error("Failed to fetch logs:", err); 
+    }
+}
+
+function updateDashboard(logs) {
+    updateTable(logs);
+    updateCharts(logs);
+}
+
+function updateTable(logs) {
+    const tbody = document.getElementById("log-body");
+    const selectedSeverity = getSelectedSeverity();
+    
+    // Filter and reverse - reading JSON from bottom to top (last entries first)
+    const newFilteredLogs = logs
+        .filter(e => selectedSeverity === 'all' || (e.severity || '').toLowerCase() === selectedSeverity)
+        .slice() // Create a copy
+        .reverse(); // Reverse so last JSON entry appears first in table
+    
+    // Get current timestamps in order
+    const currentRows = Array.from(tbody.querySelectorAll('tr'));
+    const currentTimestamps = currentRows.map(row => row.dataset.timestamp).filter(Boolean);
+    const newTimestamps = newFilteredLogs.map(log => log.timestamp);
+    
+    // Check if order/content changed
+    const orderChanged = JSON.stringify(currentTimestamps) !== JSON.stringify(newTimestamps);
+    
+    // Only rebuild if order changed or rows need to be added/removed
+    if (!orderChanged && currentTimestamps.length === newTimestamps.length) {
+        // Just remove new-row classes from existing rows
+        currentRows.forEach(row => row.classList.remove('new-row'));
+        return;
+    }
+    
+    // Build new table using DocumentFragment for smoother update
+    const fragment = document.createDocumentFragment();
+    
+    if(newFilteredLogs.length === 0){
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="4" style="text-align:center; padding:50px; color:var(--text-dim);">// NO ANOMALIES DETECTED //</td>';
+        fragment.appendChild(row);
+    } else {
+        newFilteredLogs.forEach((e, index) => {
+            const {time,date}=formatLogTime(e.timestamp);
+            const userDisplay=getUserDisplay(e);
+            const matchesDisplay=getMatchesDisplay(e);
+            const severity=e.severity||'Unknown';
+            const severityClass=`severity-${severity.toLowerCase()}`;
+            
+            const isNew = index < 3 && !currentTimestamps.includes(e.timestamp);
+            
+            const row = document.createElement('tr');
+            row.dataset.timestamp = e.timestamp;
+            if (isNew) row.classList.add('new-row');
+            
+            row.innerHTML = `
+                <td class="col-user"><span class="user-prefix">UID::</span>${userDisplay}</td>
+                <td class="col-msg"><span class="msg-arrow">>></span>${e.message}</td>
+                <td><div class="threat-badge ${severityClass}"><span class="threat-icon">⚠</span> ${severity}: ${matchesDisplay}</div></td>
+                <td class="col-time"><span class="time-clock">${time}</span><span class="time-date">${date}</span></td>
+            `;
+            fragment.appendChild(row);
+        });
+    }
+    
+    // Replace content in one operation to minimize flickering
+    tbody.innerHTML = '';
+    tbody.appendChild(fragment);
+}
+
+filterControl.addEventListener("change", () => updateDashboard(logData));
+
+
+function updateCharts(logs){
+    const severityCounts={Critical:0,High:0,Medium:0,Low:0,Safe:0};
+    const keywordCounts={};
+    const hostileUserCounts={};
+
+    logs.forEach(e=>{
+        const sev=e.severity||"Unknown";
+        if(severityCounts[sev]!==undefined) severityCounts[sev]++;
+
+        // Count messages by user for Hostile User Chart
+        const user = getUserDisplay(e);
+        hostileUserCounts[user] = (hostileUserCounts[user] || 0) + 1;
+
+        // Keyword Count (from e.matches)
+        if(e.matches && Array.isArray(e.matches)) {
+            e.matches.forEach(match => {
+                const words = match.toLowerCase().split(/[^a-z0-9]+/); 
+                words.filter(w => w.length > 2).forEach(word => {
+                    keywordCounts[word] = (keywordCounts[word]||0) + 1;
+                });
+            });
+        }
+    });
+
+    const sortedKeywords=Object.entries(keywordCounts).sort((a,b)=>b[1]-a[1]).slice(0,7);
+    const sortedHostileUsers=Object.entries(hostileUserCounts).sort((a,b)=>b[1]-a[1]).slice(0,5); // Top 5 users
+
+    if(severityChartInstance) severityChartInstance.destroy();
+    if(keywordChartInstance) keywordChartInstance.destroy();
+    if(hostileUserChartInstance) hostileUserChartInstance.destroy(); // Destroy old instance
+
+    // --- 1. Severity Doughnut Chart ---
+    severityChartInstance = new Chart(document.getElementById("severityChart"), {
+        type:'doughnut',
+        data:{
+            labels:Object.keys(severityCounts),
+            datasets:[{ 
+                data:Object.values(severityCounts), 
+                backgroundColor:DOUGHNUT_COLORS, // Use new neon colors
+                borderColor: 'rgba(0, 0, 0, 0.9)',
+                borderWidth: 3,
+                hoverOffset: 8,
+                hoverBorderWidth: 4,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                shadowBlur: 20,
+                shadowColor: 'rgba(0, 243, 255, 0.4)'
+            }]
+        },
+        options:{ 
+            responsive:true, 
+            maintainAspectRatio:false, 
+            plugins:{
+                legend:{display:false}, // Removed Legend
+                tooltip:{
+                    enabled:true,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    titleColor: '#ff003c',
+                    bodyColor: '#ff003c',
+                    borderColor: '#ff003c',
+                    borderWidth: 2,
+                    padding: 12,
+                    titleFont: { family: "'Share Tech Mono', monospace", size: 14, weight: 'bold' },
+                    bodyFont: { family: "'Share Tech Mono', monospace", size: 12 },
+                    boxPadding: 8,
+                    boxShadow: '0 0 20px rgba(255, 0, 60, 0.6)',
+                    cornerRadius: 4,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed;
+                        }
+                    }
+                }
+            },
+            layout: { padding: { top: 35, bottom: 35 } },
+            cutout: '70%'
+        }
+    });
+
+    // --- 2. Top Keywords Bar Chart ---
+    const keywordCtx = document.getElementById("keywordChart").getContext('2d');
+    keywordChartInstance = new Chart(keywordCtx, {
+        type:'bar',
+        data:{
+            labels:sortedKeywords.map(k=>k[0].toUpperCase()),
+            datasets:[{ 
+                label:"Occurrences", 
+                data:sortedKeywords.map(k=>k[1]), 
+                backgroundColor: (ctx) => {
+                    const gradient = ctx.chart.ctx.createLinearGradient(0, ctx.chart.height, 0, 0);
+                    gradient.addColorStop(0, 'rgba(0, 243, 255, 0.3)');
+                    gradient.addColorStop(0.5, 'rgba(0, 243, 255, 0.8)');
+                    gradient.addColorStop(1, 'rgba(0, 243, 255, 1)');
+                    return gradient;
+                },
+                borderColor: '#00f3ff',
+                borderWidth: 2,
+                borderRadius: { topLeft: 3, topRight: 3, bottomLeft: 3, bottomRight: 3 },
+                borderSkipped: false,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                shadowBlur: 15,
+                shadowColor: 'rgba(0, 243, 255, 0.6)'
+            }]
+        },
+        options:{ 
+            indexAxis: 'y', 
+            responsive:true, 
+            maintainAspectRatio:false, 
+            plugins:{
+                legend:{display:false},
+                title:{display:false},
+                tooltip:{
+                    enabled:true,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    titleColor: '#ff003c',
+                    bodyColor: '#ff003c',
+                    borderColor: '#ff003c',
+                    borderWidth: 2,
+                    padding: 12,
+                    titleFont: { family: "'Share Tech Mono', monospace", size: 14, weight: 'bold' },
+                    bodyFont: { family: "'Share Tech Mono', monospace", size: 12 },
+                    boxPadding: 8,
+                    boxShadow: '0 0 20px rgba(255, 0, 60, 0.6)',
+                    cornerRadius: 4
+                }
+            }, 
+            scales:{
+                x:{
+                    beginAtZero:true,
+                    grid: { 
+                        color: 'rgba(0, 243, 255, 0.15)',
+                        lineWidth: 1
+                    },
+                    border: {
+                        color: 'rgba(0, 243, 255, 0.3)',
+                        width: 2
+                    },
+                    ticks: { 
+                        color: '#00f3ff', 
+                        font: { family: "'Share Tech Mono', monospace", size: 11 },
+                        backdropColor: 'rgba(0, 0, 0, 0.8)',
+                        backdropPadding: 4
+                    }
+                },
+                y:{
+                    grid: { 
+                        color: 'rgba(0, 243, 255, 0.1)',
+                        lineWidth: 1
+                    },
+                    border: {
+                        color: 'rgba(0, 243, 255, 0.3)',
+                        width: 2
+                    },
+                    ticks: { 
+                        color: '#00f3ff', 
+                        font: { family: "'Share Tech Mono', monospace", size: 11 },
+                        backdropColor: 'rgba(0, 0, 0, 0.8)',
+                        backdropPadding: 4
+                    }
+                }
+            }
+        }
+    });
+
+    // --- 3. Top Hostile Users Chart (New) - VERTICAL ---
+    const hostileUserCtx = document.getElementById("hostileUserChart").getContext('2d');
+    hostileUserChartInstance = new Chart(hostileUserCtx, {
+        type:'bar',
+        data:{
+            labels:sortedHostileUsers.map(u=>u[0]),
+            datasets:[{ 
+                label:"Messages Sent", 
+                data:sortedHostileUsers.map(u=>u[1]), 
+                backgroundColor: (ctx) => {
+                    const gradient = ctx.chart.ctx.createLinearGradient(0, ctx.chart.height, 0, 0);
+                    gradient.addColorStop(0, 'rgba(0, 243, 255, 0.3)');
+                    gradient.addColorStop(0.5, 'rgba(0, 243, 255, 0.8)');
+                    gradient.addColorStop(1, 'rgba(0, 243, 255, 1)');
+                    return gradient;
+                },
+                borderColor: '#00f3ff',
+                borderWidth: 2,
+                borderRadius: { topLeft: 3, topRight: 3, bottomLeft: 3, bottomRight: 3 },
+                borderSkipped: false,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                shadowBlur: 15,
+                shadowColor: 'rgba(0, 243, 255, 0.6)'
+            }]
+        },
+        options:{ 
+            // Vertical bars (default, no indexAxis) 
+            responsive:true, 
+            maintainAspectRatio:false, 
+            plugins:{
+                legend:{display:false},
+                title:{display:false},
+                tooltip:{
+                    enabled:true,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    titleColor: '#ff003c',
+                    bodyColor: '#ff003c',
+                    borderColor: '#ff003c',
+                    borderWidth: 2,
+                    padding: 12,
+                    titleFont: { family: "'Share Tech Mono', monospace", size: 14, weight: 'bold' },
+                    bodyFont: { family: "'Share Tech Mono', monospace", size: 12 },
+                    boxPadding: 8,
+                    boxShadow: '0 0 20px rgba(255, 0, 60, 0.6)',
+                    cornerRadius: 4
+                }
+            }, 
+            scales:{
+                x:{
+                    beginAtZero:true,
+                    grid: { 
+                        color: 'rgba(0, 243, 255, 0.1)',
+                        lineWidth: 1
+                    },
+                    border: {
+                        color: 'rgba(0, 243, 255, 0.3)',
+                        width: 2
+                    },
+                    ticks: { 
+                        color: '#00f3ff', 
+                        font: { family: "'Share Tech Mono', monospace", size: 11 },
+                        backdropColor: 'rgba(0, 0, 0, 0.8)',
+                        backdropPadding: 4
+                    }
+                },
+                y:{
+                    beginAtZero:true,
+                    grid: { 
+                        color: 'rgba(0, 243, 255, 0.15)',
+                        lineWidth: 1
+                    },
+                    border: {
+                        color: 'rgba(0, 243, 255, 0.3)',
+                        width: 2
+                    },
+                    ticks: { 
+                        color: '#00f3ff', 
+                        font: { family: "'Share Tech Mono', monospace", size: 11 },
+                        backdropColor: 'rgba(0, 0, 0, 0.8)',
+                        backdropPadding: 4
+                    }
+                }
+            }
+        }
+    });
+}
+
+fetchLogs();
+setInterval(fetchLogs,2000);
+</script>
+
+</body>
+</html>

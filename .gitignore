@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+tgbot-env/
+__pycache__/
+*.py[cod]
+
+events_log.json
+*.log
